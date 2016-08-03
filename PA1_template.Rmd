@@ -50,11 +50,13 @@ title = "Histogram of Steps Taken each Day")
 Now, we will calculate the mean and median total number of steps taken each day.
 
 ```{r mean1}
-aggregate(steps ~ date, stepData, mean)
+aggrData <- aggregate(steps ~ date, stepData, sum)
+mean(aggrData$steps)
 ```
 
 ```{r median1}
-aggregate(steps ~ date, stepData, median)
+aggrData1 <- aggregate(steps ~ date, stepData, sum)
+median(aggrData$steps)
 ```
 
 ## What is the average daily activity pattern?
