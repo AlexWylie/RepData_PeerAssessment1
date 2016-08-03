@@ -1,25 +1,183 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+Reproducible Research: Peer Assessment 1
+========================================
 
+## Introduction 
+
+This assignment makes use of data from a personal activity monitoring device.
+This device collects data at 5 minute intervals through out the day. The data 
+consists of two months of data from an anonymous individual collected during the
+months of October and November, 2012 and include the number of steps taken in 5
+minute intervals each day.
+
+The following report will answer the questions detailed below. Ultimately, the
+entire assignment will be in a single R markdown document that can be processed 
+by knitr and be transformed into an HTML file.
+
+The questions are:
+
+1. Loading and preprocessing the data.
+2. What is mean total number of steps taken per day?
+3. What is the average daily activity pattern?
+4. Imputing missing values.
+5. Are there differences in activity patterns between weekdays and weekends?
 
 ## Loading and preprocessing the data
 
+The following code loads the data set and transforms the date column into a date vector.
 
+```{r loadData}
+stepData <- read.csv("activity.csv")
+stepData$date <- as.Date(stepData$date, format = "%Y-%m-%d")
+head(stepData)
+```
 
 ## What is mean total number of steps taken per day?
 
+Firstly, we will make a histogram of the total number of steps taken each day 
+using the ggplot2 function.
 
+```{r histogram1}
+if(!require(ggplot2)) {
+        install.packages("ggplot2")
+        library(ggplot2)
+}
+aggData <- aggregate(steps ~ date, stepData, sum)
+ggplot(aggData, aes(steps)) + geom_histogram(colour = "orange") + labs(x = 
+"Steps Taken each Day", y = "Frequency",
+title = "Histogram of Steps Taken each Day")
+```
+
+Now, we will calculate the mean and median total number of steps taken each day.
+
+```{r mean1}
+aggregate(steps ~ date, stepData, mean)
+```
+
+```{r median1}
+aggregate(steps ~ date, stepData, median)
+```
 
 ## What is the average daily activity pattern?
 
+We will make a time series plot (i.e. type = "l") of the 5-minute interval
+(x-axis) and the average number of steps taken, averaged across all days
+(y-axis).
 
+```{r timeseries}
+aggData1 <- aggregate(steps ~ interval, stepData, mean)
+ggplot(aggData1, aes(interval, steps)) + geom_line(colour = "orange") + labs(x = 
+"5-Minute Intervals", y = "Average Number of Steps Taken",
+title = "Time Series of Average Steps Taken each 5-Minute Interval")
+```
+
+Now, we can work out which 5-minute interval, on average across all the days in
+the dataset, contains the maximum number of steps.
+
+```{r max steps interval}
+aggData <- aggregate(steps ~ interval, stepData, mean)
+which.max(aggData[,2])
+aggData[104,]
+```
 
 ## Imputing missing values
 
+Below is a calculation of the total number of missing values in the data set.
 
+```{r na total}
+sum(is.na(stepData$steps))
+```
+
+We will replace all missing values with the overall mean of the number of steps
+taken in a single 5-minute interval and we create a new data set.
+
+```{r create new data set without na}
+stepData1 <- stepData
+stepData1$steps[which(is.na(stepData$steps))] <- mean(stepData$steps,
+                                                      na.rm = T)
+```
+
+Below is a histogram of the total number of steps taken each day with the NAs 
+now replaced.
+
+```{r histogram2}
+aggData2 <- aggregate(steps ~ date, stepData1, sum)
+ggplot(aggData2, aes(steps)) + geom_histogram(colour = "orange") + labs(x = 
+"Steps Taken each Day", y = "Frequency",
+title = "Histogram of Steps Taken each Day with NAs Replaced")
+```
+
+Now, we will calculate the mean and median total number of steps taken each day,
+with the NAs now replaced.
+
+```{r mean2}
+aggregate(steps ~ date, stepData1, mean)
+```
+
+```{r median2}
+aggregate(steps ~ date, stepData1, median)
+```
+
+Overall, the means do not differ too significantly. The most notable difference
+is that the first day of the observations has changed significantly. This is 
+because it contained mostly NA values in the original data set.
+
+Furthermore, in the original data set, every day has a median of 0. In the 
+updated data set, the median values have jumped to 37.826, which was value that replaced the NAs.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+The following code creates a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r weekday factor}
+weekdays1 <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+stepData1$wDay <- factor((weekdays(stepData1$date) %in% weekdays1), levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
+head(stepData1)
+```
+
+Using the new factor variable (wDay), we seperate the data set into total means
+at each interval for weekdays and weekends.
+
+```{r aggregate}
+aggData3 <- aggregate(steps ~ interval, stepData1[stepData1$wDay == "weekday",], mean)
+aggData4 <- aggregate(steps ~ interval, stepData1[stepData1$wDay == "weekend",], mean)
+```
+
+Then, using the multiplot function created by Winston Chang - http://stat545.com/block020_multiple-plots-on-a-page.html, we combine the two time series plots created from the two seperated data sets.
+
+```{r multiplot}
+p1 <- ggplot(aggData3, aes(interval, steps)) + geom_line(colour = "orange") + labs(x = "5-Minute Intervals during Weekdays", y = "Average Number of Steps")
+p2 <- ggplot(aggData4, aes(interval, steps)) + geom_line(colour = "orange") + labs(x = "5-Minute Intervals during Weekends", y = "Average Number of Steps")
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+  plots <- c(list(...), plotlist)
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+multiplot(p1, p2)
+```
