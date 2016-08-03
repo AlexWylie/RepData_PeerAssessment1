@@ -53,13 +53,6 @@ if(!require(ggplot2)) {
         install.packages("ggplot2")
         library(ggplot2)
 }
-```
-
-```
-## Loading required package: ggplot2
-```
-
-```r
 aggData <- aggregate(steps ~ date, stepData, sum)
 ggplot(aggData, aes(steps)) + geom_histogram(colour = "orange") + labs(x = 
 "Steps Taken each Day", y = "Frequency",
@@ -391,10 +384,6 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   }
 }
 multiplot(p1, p2)
-```
-
-```
-## Loading required package: grid
 ```
 
 ![plot of chunk multiplot](figure/multiplot-1.png)
